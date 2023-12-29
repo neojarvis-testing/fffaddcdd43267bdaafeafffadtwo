@@ -1,11 +1,12 @@
 const userController = require('../controllers/userController');
 const User = require('../models/userModel');
 const Employee = require('../models/employeeModel');
+const mongoose = require('mongoose'); 
 const {getAllEmployees,getEmployeeById,registerEmployee,editEmployee,deleteEmployee,getEmployeeByUserId} = require('../controllers/employeeController');
 const {getUserByUsernameAndPassword,addUser,getAllUsers} = require('../controllers/userController');
-const employee = require('../models/employeeModel');
 
 describe('getUserByUsernameAndPassword', () => {
+
 
     test('getuserbyusernameandpassword_should_return_invalid_credentials_with_a_200_status_code', async () => {
       // Sample user credentials
@@ -260,7 +261,7 @@ describe('getUserByUsernameAndPassword', () => {
       await expect(user.validate()).rejects.toThrowError(/Password must be at least 8 characters long/);
     });
   
-    test('should_validate_a_user_with_a password_longer_than_the_maximum_length', async () => {
+    test('should_validate_a_user_with_a_password_longer_than_the_maximum_length', async () => {
       const invalidUserData = {
         firstName: 'John',
         lastName: 'Doe',
@@ -276,7 +277,6 @@ describe('getUserByUsernameAndPassword', () => {
       await expect(user.validate()).rejects.toThrowError(/Password must be at most 32 characters long/);
     });
   });
-
 
   describe('Employee Model Schema Validation', () => {
 
@@ -326,6 +326,7 @@ describe('getUserByUsernameAndPassword', () => {
         });
 
   });
+
 
 describe('getAllEmployeesController', () => {
 
@@ -381,6 +382,7 @@ describe('getAllEmployeesController', () => {
         expect(Employee.find).toHaveBeenCalledWith({firstName: new RegExp('John', 'i')});
         expect(employeeQuery.sort).toHaveBeenCalledWith({experience: 1});
         expect(res.status).toHaveBeenCalledWith(200);
+        // expect(res.json).toHaveBeenCalledWith({employees: employeesData});
         expect(res.json).toHaveBeenCalledWith({data: employeesData});
     });
 
@@ -415,414 +417,412 @@ describe('getAllEmployeesController', () => {
 
 });
 
+
 describe('registerEmployeeController', () => {
-    test('registeremployee_should_add_employee_and_respond_with_a_200_status_code_and_success_message', async () => {
-        // Sample employee data
-        const employeeData = {
-            firstName: 'John',
-            lastName: 'Doe',
-            mobileNumber: '1234567890',
-            mailId: 'john@gmail.com',
-            dateOfBirth:'1998-01-01',
-            age:'22',
-            gender:'male',
-            education:'BE',
-            experience:'1',
-            userId: new mongoose.Types.ObjectId(),
-        };
+  test('registeremployee_should_add_employee_and_respond_with_a_200_status_code_and_success_message', async () => {
+      // Sample employee data
+      const employeeData = {
+          firstName: 'John',
+          lastName: 'Doe',
+          mobileNumber: '1234567890',
+          mailId: 'john@gmail.com',
+          dateOfBirth:'1998-01-01',
+          age:'22',
+          gender:'male',
+          education:'BE',
+          experience:'1',
+          userId: new mongoose.Types.ObjectId(),
+      };
 
-        // Mock Express request and response objects
-        Employee.create = jest.fn().mockResolvedValue(employeeData);
-        const req = {
-            body: employeeData,
-        };
-        const res = {
-            status: jest.fn().mockReturnThis(),
-            json: jest.fn(),
-        };
-
-        // Call the controller function
-        await registerEmployee(req, res);
-
-        // Assertions
-        expect(Employee.create).toHaveBeenCalledWith(employeeData);
-        expect(res.status).toHaveBeenCalledWith(200);
-        expect(res.json).toHaveBeenCalledWith({ message: 'Employee registration successful' });
-    });
-
-    test('registeremployee_should_handle_errors_and_respond_with_a_500_status_code_and_an_error_message', async () => {
-        // Mock an error to be thrown when calling Employee.create
-        const error = new Error('Database error');
-
-        // Mock Express request and response objects
-        Employee.create = jest.fn().mockRejectedValue(error);
-
-        const req = {
-            body: {},
-        };
-        const res = {
-            status: jest.fn().mockReturnThis(),
-            json: jest.fn(),
-        };
-
-        // Call the controller function
-        await registerEmployee(req, res);
-
-        // Assertions
-        expect(Employee.create).toHaveBeenCalledWith(req.body);
-        expect(res.status).toHaveBeenCalledWith(500);
-        expect(res.json).toHaveBeenCalledWith({ message: 'Database error' });
-    });
-
-});
-
-
-describe('updateEmployeeController', () => {
-
-    test('updateemployee_should_update_employee_and_respond_with_a_200_status_code_and_success_message', async () => {
-
-        // Sample employee data
-        const employeeId = new mongoose.Types.ObjectId();
-        const updateEmployeeData = {
-            firstName: 'UpdatedJohn',
-            lastName: 'Doe',
-            mobileNumber: '1234567890',
-            mailId: 'update@gmail.com',
-            dateOfBirth:'1998-01-01',
-            age:'22',
-            gender:'male',
-            education:'BE',
-            experience:'1',
-            userId: new mongoose.Types.ObjectId(),
-        };
-
-        // Mock Express request and response objects
-        const req = {
-            body: updateEmployeeData,
-            params: { id: employeeId },
-        };
-        const res = {
-            status: jest.fn().mockReturnThis(),
-            json: jest.fn(),
-        };
-
-        // Mock the Employee.findByIdAndUpdate method to resolve with the sample employee data
-        Employee.findByIdAndUpdate = jest.fn().mockResolvedValue(updateEmployeeData);
-
-        // Call the controller function
-        await editEmployee(req, res);
-
-        // Assertions
-        expect(Employee.findByIdAndUpdate).toHaveBeenCalledWith(employeeId, updateEmployeeData, { new: true });
-        expect(res.status).toHaveBeenCalledWith(200);
-        expect(res.json).toHaveBeenCalledWith({ message: 'Employee updated successfully' });
-    });
-
-    test('should_handle_not_found_error_when_updating_a_non_existent_employee', async () => {
-
-        const req = { params: { id: new mongoose.Types.ObjectId() }, body: {} };
-        const res = {
-            status: jest.fn().mockReturnThis(),
-            json: jest.fn(),
-        };
-
-        // Mock the Employee.findByIdAndUpdate method to resolve with null
-        Employee.findByIdAndUpdate = jest.fn().mockResolvedValue(null);
-
-        // Call the controller function
-        await editEmployee(req, res);
-
-        // Assertions
-        expect(Employee.findByIdAndUpdate).toHaveBeenCalledWith(req.params.id, {}, { new: true });
-        expect(res.status).toHaveBeenCalledWith(404);
-        expect(res.json).toHaveBeenCalledWith({ message: 'Employee not found' });
-    });
-
-    test('updateemployee_should_handle_errors_and_respond_with_a_500_status_code_and_an_error_message', async () => {
-        // Mock an error to be thrown when calling Employee.findByIdAndUpdate
-        const error = new Error('Database error');
-
-        // Sample employee data
-        const req = { params: { id: new mongoose.Types.ObjectId() }, body: {} };
-        const res = {
-            status: jest.fn().mockReturnThis(),
-            json: jest.fn(),
-        };
-
-        // Mock the Employee.findByIdAndUpdate method to reject with an error
-        Employee.findByIdAndUpdate = jest.fn().mockRejectedValue(error);
-
-        // Call the controller function
-        await editEmployee(req, res);
-
-        // Assertions
-        expect(Employee.findByIdAndUpdate).toHaveBeenCalledWith(req.params.id, {}, { new: true });
-        expect(res.status).toHaveBeenCalledWith(500);
-        expect(res.json).toHaveBeenCalledWith({ message: 'Database error' });
-    });
-
-});
-
-
-describe('deleteEmployeeController', () => {
-
-    test('deleteemployee_should_delete_employee_and_respond_with_a_200_status_code_and_success_message', async () => {
-
-        const employeeId = new mongoose.Types.ObjectId();
-
-        // Mock Express request and response objects
-        const req = {
-            params: { id: employeeId },
-        };
-        const res = {
-            status: jest.fn().mockReturnThis(),
-            json: jest.fn(),
-        };
-
-        // Mock the Employee.findByIdAndDelete method to resolve with the sample employee data
-        Employee.findByIdAndDelete = jest.fn().mockResolvedValue({
-            _id: employeeId,
-            firstName: 'JohnDelete',
-            lastName: 'Doe',
-            mobileNumber: '1234567890',
-            mailId: 'delete@gmail.com',
-            dateOfBirth:'1998-01-01',
-            age:'22',
-            gender:'male',
-            education:'BE',
-            experience:'1',
-            userId: new mongoose.Types.ObjectId(),
-
-        });
-
-        // Call the controller function
-        await deleteEmployee(req, res);
-
-        // Assertions
-        expect(Employee.findByIdAndDelete).toHaveBeenCalledWith(employeeId);
-        expect(res.status).toHaveBeenCalledWith(200);
-        expect(res.json).toHaveBeenCalledWith({ message: 'Employee details deleted successfully' });
-    });
-
-    test('should_handle_not_found_error_when_deleting_a_non_existent_employee_with_404_status_code', async () => {
-
-        const req = { params: { id: new mongoose.Types.ObjectId() } };
-        const res = {
-            status: jest.fn().mockReturnThis(),
-            json: jest.fn(),
-        };
-
-        // Mock the Employee.findByIdAndDelete method to resolve with null
-        Employee.findByIdAndDelete = jest.fn().mockResolvedValue(null);
-
-        // Call the controller function
-        await deleteEmployee(req, res);
-
-        // Assertions
-        expect(Employee.findByIdAndDelete).toHaveBeenCalledWith(req.params.id);
-        expect(res.status).toHaveBeenCalledWith(404);
-        expect(res.json).toHaveBeenCalledWith({ message: 'Employee not found' });
-    });
-
-    test('deleteemployee_should_handle_errors_and_respond_with_a_500_status_code_and_an_error_message', async () => {
-        // Mock an error to be thrown when calling Employee.findByIdAndDelete
-        const error = new Error('Database error');
-
-        const req = { params: { id: new mongoose.Types.ObjectId() } };
-        const res = {
-            status: jest.fn().mockReturnThis(),
-            json: jest.fn(),
-        };
-
-        // Mock the Employee.findByIdAndDelete method to reject with an error
-        Employee.findByIdAndDelete = jest.fn().mockRejectedValue(error);
-
-        // Call the controller function
-        await deleteEmployee(req, res);
-
-        // Assertions
-        expect(Employee.findByIdAndDelete).toHaveBeenCalledWith(req.params.id);
-        expect(res.status).toHaveBeenCalledWith(500);
-        expect(res.json).toHaveBeenCalledWith({ message: 'Database error' });
-    });
-
-});
-
-
-describe('getEmployeeByIdController', () => {
-
-    test('getemployeebyid_should_return_employee_and_respond_with_a_200_status_code', async () => {
-        // Sample employee data
-        const employeeId = new mongoose.Types.ObjectId();
-        const employeeData = {
-            _id: employeeId,
-            firstName: 'John',
-            lastName: 'Doe',
-            mobileNumber: '1234567890',
-            mailId: 'find@gmail.com',
-            dateOfBirth:'1998-01-01',
-            age:'22',
-            gender:'male',
-            education:'BE',
-            experience:'1',
-            userId: new mongoose.Types.ObjectId(),
-        };
-  
-        // Mock Express request and response objects
-        Employee.findById = jest.fn().mockResolvedValue(employeeData);
-        const req = {
-            params: { id: employeeId },
-        };
-        const res = {
-            status: jest.fn().mockReturnThis(),
-            json: jest.fn(),
-        };
-  
-        // Call the controller function
-        await getEmployeeById(req, res);
-  
-        // Assertions
-        expect(Employee.findById).toHaveBeenCalledWith(employeeId, {__v: 0, _id: 0});
-        expect(res.status).toHaveBeenCalledWith(200);
-        expect(res.json).toHaveBeenCalledWith(employeeData);
-    });
-  
-    test('getemployeebyid_should_handle_not_found_error_and_respond_with_a_404_status_code_and_an_error_message', async () => {
-        // Mock Express request and response objects
-        const req = {
-            params: { id: new mongoose.Types.ObjectId() },
-        };
-        const res = {
-            status: jest.fn().mockReturnThis(),
-            json: jest.fn(),
-        };
-  
-        // Mock the Employee.findById method to resolve with null
-        Employee.findById = jest.fn().mockResolvedValue(null);
-  
-        // Call the controller function
-        await getEmployeeById(req, res);
-  
-        // Assertions
-        expect(Employee.findById).toHaveBeenCalledWith(req.params.id, {__v: 0, _id: 0});
-        expect(res.status).toHaveBeenCalledWith(404);
-        expect(res.json).toHaveBeenCalledWith({ message: 'Employee not found' });
-    });
-  
-    test('getemployeebyid_should_handle_errors_and_respond_with_a_500_status_code_and_an_error_message', async () => {
-        // Mock an error to be thrown when calling Employee.findById
-        const error = new Error('Database error');
-  
-        // Mock Express request and response objects
-        const req = {
-            params: { id: new mongoose.Types.ObjectId() },
-        };
-        const res = {
-            status: jest.fn().mockReturnThis(),
-            json: jest.fn(),
-        };
-  
-        // Mock the Employee.findById method to reject with an error
-        Employee.findById = jest.fn().mockRejectedValue(error);
-  
-        // Call the controller function
-        await getEmployeeById(req, res);
-  
-        // Assertions
-        expect(Employee.findById).toHaveBeenCalledWith(req.params.id, {__v: 0, _id: 0});
-        expect(res.status).toHaveBeenCalledWith(500);
-        expect(res.json).toHaveBeenCalledWith({ message: 'Database error' });
-    });
-  
-  });
-
-
-  describe('getEmployeeByUserIdController', () => {
-    
-    test('getemployeebyuserid_should_return_employee_and_respond_with_a_200_status_code', async () => {
-        // Sample employee data
-        const userId = new mongoose.Types.ObjectId();
-        const employeeData = [
-        {
-            _id: new mongoose.Types.ObjectId(),
-            firstName: 'John',
-            lastName: 'Doe',
-            mobileNumber: '1234567890',
-            mailId: 'sample@gmail.com',
-            dateOfBirth:'1998-01-01',
-            age:'22',
-            gender:'male',
-            education:'BE',
-            experience:'1',
-            userId: new mongoose.Types.ObjectId(),
-        },
-        {
-            _id: new mongoose.Types.ObjectId(),
-            firstName: 'Anish',
-            lastName: 'Joe',
-            mobileNumber: '1234567890',
-            mailId: 'samp2@gmail.com',
-            dateOfBirth:'1998-01-01',
-            age:'22',
-            gender:'male',
-            education:'BE',
-            experience:'10',
-            userId:userId,
-        },
-        ];
-  
-        // Mock Express request and response objects
-        const req = {
-            body:{ userId, sortValue: 1, searchValue: 'John' },
-        };
-  
-        const res = {
-            status: jest.fn().mockReturnThis(),
-            json: jest.fn(),
-        };
-  
-        // Mock the Employee.find method to resolve with the sample employee data
-        Employee.find = jest.fn().mockReturnValue({
-          sort: jest.fn().mockResolvedValue(employeeData),
-      });
-  
-        // Call the controller function
-        await getEmployeeByUserId(req, res);
-  
-        // Assertions
-        // expect(Employee.find).toHaveBeenCalledWith({ userId });
-        expect(Employee.find).toHaveBeenCalledWith({ userId, firstName: /John/i });
-        expect(res.status).toHaveBeenCalledWith(200);
-        expect(res.json).toHaveBeenCalledWith(employeeData);
-    });
-  
-    test('getemployeebyuserid_should_handle_errors_and_respond_with_a_500_status_code_and_an_error_message', async () => {
-      // Mock an error to be thrown when calling Employee.find
-      const error = new Error('Database error');
-  
       // Mock Express request and response objects
+      Employee.create = jest.fn().mockResolvedValue(employeeData);
       const req = {
-          body:{ userId: new mongoose.Types.ObjectId(), sortValue: 1, searchValue: '' },
+          body: employeeData,
       };
       const res = {
           status: jest.fn().mockReturnThis(),
           json: jest.fn(),
       };
-  
-      // Mock the Employee.find method to reject with an error
-      Employee.find = jest.fn().mockReturnValue({
-        sort: jest.fn().mockRejectedValue(error),
-    });
-  
+
       // Call the controller function
-      await getEmployeeByUserId(req, res);
-  
+      await registerEmployee(req, res);
+
       // Assertions
-      // expect(Employee.find).toHaveBeenCalledWith({userId, firstName: new RegExp('', 'i')});
+      expect(Employee.create).toHaveBeenCalledWith(employeeData);
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith({ message: 'Employee registration successful' });
+  });
+
+  test('registeremployee_should_handle_errors_and_respond_with_a_500_status_code_and_an_error_message', async () => {
+      // Mock an error to be thrown when calling Employee.create
+      const error = new Error('Database error');
+
+      // Mock Express request and response objects
+      Employee.create = jest.fn().mockRejectedValue(error);
+
+      const req = {
+          body: {},
+      };
+      const res = {
+          status: jest.fn().mockReturnThis(),
+          json: jest.fn(),
+      };
+
+      // Call the controller function
+      await registerEmployee(req, res);
+
+      // Assertions
+      expect(Employee.create).toHaveBeenCalledWith(req.body);
       expect(res.status).toHaveBeenCalledWith(500);
       expect(res.json).toHaveBeenCalledWith({ message: 'Database error' });
   });
-  
-  
+
+});
+
+describe('updateEmployeeController', () => {
+
+  test('updateemployee_should_update_employee_and_respond_with_a_200_status_code_and_success_message', async () => {
+
+      // Sample employee data
+      const employeeId = new mongoose.Types.ObjectId();
+      const updateEmployeeData = {
+          firstName: 'UpdatedJohn',
+          lastName: 'Doe',
+          mobileNumber: '1234567890',
+          mailId: 'update@gmail.com',
+          dateOfBirth:'1998-01-01',
+          age:'22',
+          gender:'male',
+          education:'BE',
+          experience:'1',
+          userId: new mongoose.Types.ObjectId(),
+      };
+
+      // Mock Express request and response objects
+      const req = {
+          body: updateEmployeeData,
+          params: { id: employeeId },
+      };
+      const res = {
+          status: jest.fn().mockReturnThis(),
+          json: jest.fn(),
+      };
+
+      // Mock the Employee.findByIdAndUpdate method to resolve with the sample employee data
+      Employee.findByIdAndUpdate = jest.fn().mockResolvedValue(updateEmployeeData);
+
+      // Call the controller function
+      await editEmployee(req, res);
+
+      // Assertions
+      expect(Employee.findByIdAndUpdate).toHaveBeenCalledWith(employeeId, updateEmployeeData,{ new: true });
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith({ message: 'Employee details updated successfully' });
+  });
+
+  test('should_handle_not_found_error_when_updating_a_non_existent_employee', async () => {
+
+      const req = { params: { id: new mongoose.Types.ObjectId() }, body: {} };
+      const res = {
+          status: jest.fn().mockReturnThis(),
+          json: jest.fn(),
+      };
+
+      // Mock the Employee.findByIdAndUpdate method to resolve with null
+      Employee.findByIdAndUpdate = jest.fn().mockResolvedValue(null);
+
+      // Call the controller function
+      await editEmployee(req, res);
+
+      // Assertions
+      expect(Employee.findByIdAndUpdate).toHaveBeenCalledWith(req.params.id, {}, { new: true });
+      expect(res.status).toHaveBeenCalledWith(404);
+      expect(res.json).toHaveBeenCalledWith({ message: 'Employee not found' });
+  });
+
+  test('updateemployee_should_handle_errors_and_respond_with_a_500_status_code_and_an_error_message', async () => {
+      // Mock an error to be thrown when calling Employee.findByIdAndUpdate
+      const error = new Error('Database error');
+
+      // Sample employee data
+      const req = { params: { id: new mongoose.Types.ObjectId() }, body: {} };
+      const res = {
+          status: jest.fn().mockReturnThis(),
+          json: jest.fn(),
+      };
+
+      // Mock the Employee.findByIdAndUpdate method to reject with an error
+      Employee.findByIdAndUpdate = jest.fn().mockRejectedValue(error);
+
+      // Call the controller function
+      await editEmployee(req, res);
+
+      // Assertions
+      expect(Employee.findByIdAndUpdate).toHaveBeenCalledWith(req.params.id, {}, { new: true });
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({ message: 'Database error' });
+  });
+
+});
+
+describe('deleteEmployeeController', () => {
+
+  test('deleteemployee_should_delete_employee_and_respond_with_a_200_status_code_and_success_message', async () => {
+
+      const employeeId = new mongoose.Types.ObjectId();
+
+      // Mock Express request and response objects
+      const req = {
+          params: { id: employeeId },
+      };
+      const res = {
+          status: jest.fn().mockReturnThis(),
+          json: jest.fn(),
+      };
+
+      // Mock the Employee.findByIdAndDelete method to resolve with the sample employee data
+      Employee.findByIdAndDelete = jest.fn().mockResolvedValue({
+          _id: employeeId,
+          firstName: 'JohnDelete',
+          lastName: 'Doe',
+          mobileNumber: '1234567890',
+          mailId: 'delete@gmail.com',
+          dateOfBirth:'1998-01-01',
+          age:'22',
+          gender:'male',
+          education:'BE',
+          experience:'1',
+          userId: new mongoose.Types.ObjectId(),
+
+      });
+
+      // Call the controller function
+      await deleteEmployee(req, res);
+
+      // Assertions
+      expect(Employee.findByIdAndDelete).toHaveBeenCalledWith(employeeId);
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith({ message: 'Employee details deleted successfully' });
+  });
+
+  test('should_handle_not_found_error_when_deleting_a_non_existent_employee_with_404_status_code', async () => {
+
+      const req = { params: { id: new mongoose.Types.ObjectId() } };
+      const res = {
+          status: jest.fn().mockReturnThis(),
+          json: jest.fn(),
+      };
+
+      // Mock the Employee.findByIdAndDelete method to resolve with null
+      Employee.findByIdAndDelete = jest.fn().mockResolvedValue(null);
+
+      // Call the controller function
+      await deleteEmployee(req, res);
+
+      // Assertions
+      expect(Employee.findByIdAndDelete).toHaveBeenCalledWith(req.params.id);
+      expect(res.status).toHaveBeenCalledWith(404);
+      expect(res.json).toHaveBeenCalledWith({ message: 'Employee not found' });
+  });
+
+  test('deleteemployee_should_handle_errors_and_respond_with_a_500_status_code_and_an_error_message', async () => {
+      // Mock an error to be thrown when calling Employee.findByIdAndDelete
+      const error = new Error('Database error');
+
+      const req = { params: { id: new mongoose.Types.ObjectId() } };
+      const res = {
+          status: jest.fn().mockReturnThis(),
+          json: jest.fn(),
+      };
+
+      // Mock the Employee.findByIdAndDelete method to reject with an error
+      Employee.findByIdAndDelete = jest.fn().mockRejectedValue(error);
+
+      // Call the controller function
+      await deleteEmployee(req, res);
+
+      // Assertions
+      expect(Employee.findByIdAndDelete).toHaveBeenCalledWith(req.params.id);
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({ message: 'Bad request' });
+  });
+
+});
+
+describe('getEmployeeByIdController', () => {
+
+  test('getemployeebyid_should_return_employee_and_respond_with_a_200_status_code', async () => {
+      // Sample employee data
+      const employeeId = new mongoose.Types.ObjectId();
+      const employeeData = {
+          _id: employeeId,
+          firstName: 'John',
+          lastName: 'Doe',
+          mobileNumber: '1234567890',
+          mailId: 'find@gmail.com',
+          dateOfBirth:'1998-01-01',
+          age:'22',
+          gender:'male',
+          education:'BE',
+          experience:'1',
+          userId: new mongoose.Types.ObjectId(),
+      };
+
+      // Mock Express request and response objects
+      Employee.findById = jest.fn().mockResolvedValue(employeeData);
+      const req = {
+          params: { id: employeeId },
+      };
+      const res = {
+          status: jest.fn().mockReturnThis(),
+          json: jest.fn(),
+      };
+
+      // Call the controller function
+      await getEmployeeById(req, res);
+
+      // Assertions
+      expect(Employee.findById).toHaveBeenCalledWith(employeeId, {__v: 0, _id: 0});
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith(employeeData);
+  });
+
+  test('getemployeebyid_should_handle_not_found_error_and_respond_with_a_404_status_code_and_an_error_message', async () => {
+      // Mock Express request and response objects
+      const req = {
+          params: { id: new mongoose.Types.ObjectId() },
+      };
+      const res = {
+          status: jest.fn().mockReturnThis(),
+          json: jest.fn(),
+      };
+
+      // Mock the Employee.findById method to resolve with null
+      Employee.findById = jest.fn().mockResolvedValue(null);
+
+      // Call the controller function
+      await getEmployeeById(req, res);
+
+      // Assertions
+      expect(Employee.findById).toHaveBeenCalledWith(req.params.id, {__v: 0, _id: 0});
+      expect(res.status).toHaveBeenCalledWith(404);
+      expect(res.json).toHaveBeenCalledWith({ message: 'Employee not found' });
+  });
+
+
+  test('getemployeebyid_should_handle_errors_and_respond_with_a_500_status_code_and_an_error_message', async () => {
+      // Mock an error to be thrown when calling Employee.findById
+      const error = new Error('Database error');
+
+      // Mock Express request and response objects
+      const req = {
+          params: { id: new mongoose.Types.ObjectId() },
+      };
+      const res = {
+          status: jest.fn().mockReturnThis(),
+          json: jest.fn(),
+      };
+
+      // Mock the Employee.findById method to reject with an error
+      Employee.findById = jest.fn().mockRejectedValue(error);
+
+      // Call the controller function
+      await getEmployeeById(req, res);
+
+      // Assertions
+      expect(Employee.findById).toHaveBeenCalledWith(req.params.id, {__v: 0, _id: 0});
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({ message: 'Database error' });
+  });
+
+});
+describe('getEmployeeByUserIdController', () => {
+    
+  test('getemployeebyuserid_should_return_employee_and_respond_with_a_200_status_code', async () => {
+      // Sample employee data
+      const userId = new mongoose.Types.ObjectId();
+      const employeeData = [
+      {
+          _id: new mongoose.Types.ObjectId(),
+          firstName: 'John',
+          lastName: 'Doe',
+          mobileNumber: '1234567890',
+          mailId: 'sample@gmail.com',
+          dateOfBirth:'1998-01-01',
+          age:'22',
+          gender:'male',
+          education:'BE',
+          experience:'1',
+          userId: new mongoose.Types.ObjectId(),
+      },
+      {
+          _id: new mongoose.Types.ObjectId(),
+          firstName: 'Anish',
+          lastName: 'Joe',
+          mobileNumber: '1234567890',
+          mailId: 'samp2@gmail.com',
+          dateOfBirth:'1998-01-01',
+          age:'22',
+          gender:'male',
+          education:'BE',
+          experience:'10',
+          userId:userId,
+      },
+      ];
+
+      // Mock Express request and response objects
+      const req = {
+          body:{ userId, sortValue: 1, searchValue: 'John' },
+      };
+
+      const res = {
+          status: jest.fn().mockReturnThis(),
+          json: jest.fn(),
+      };
+
+      // Mock the Employee.find method to resolve with the sample employee data
+      Employee.find = jest.fn().mockReturnValue({
+        sort: jest.fn().mockResolvedValue(employeeData),
+    });
+
+      // Call the controller function
+      await getEmployeeByUserId(req, res);
+
+      // Assertions
+      // expect(Employee.find).toHaveBeenCalledWith({ userId });
+      expect(Employee.find).toHaveBeenCalledWith({ userId, firstName: /John/i });
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith(employeeData);
+  });
+
+
+  test('getemployeebyuserid_should_handle_errors_and_respond_with_a_500_status_code_and_an_error_message', async () => {
+    // Mock an error to be thrown when calling Employee.find
+    const error = new Error('Database error');
+
+    // Mock Express request and response objects
+    const req = {
+        body:{ userId: new mongoose.Types.ObjectId(), sortValue: 1, searchValue: '' },
+    };
+    const res = {
+        status: jest.fn().mockReturnThis(),
+        json: jest.fn(),
+    };
+
+    // Mock the Employee.find method to reject with an error
+    Employee.find = jest.fn().mockReturnValue({
+      sort: jest.fn().mockRejectedValue(error),
+  });
+
+    // Call the controller function
+    await getEmployeeByUserId(req, res);
+
+    // Assertions
+    // expect(Employee.find).toHaveBeenCalledWith({userId, firstName: new RegExp('', 'i')});
+    expect(res.status).toHaveBeenCalledWith(500);
+    expect(res.json).toHaveBeenCalledWith({ message: 'Database error' });
+});
+
+
 });
 
